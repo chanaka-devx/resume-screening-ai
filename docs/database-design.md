@@ -67,7 +67,8 @@ Stores uploaded resume files and their extracted text.
 | file_name | TEXT |
 | file_path | TEXT |
 | parsed_text | TEXT |
-| upload_at | TIMESTAMP |
+| created_at | TIMESTAMP |
+| updated_at | TIMESTAMP |
 | deleted_at | TIMESTAMP NULL |
 
 ### Design Decision
@@ -119,7 +120,8 @@ Stores job applications submitted by applicants.
 | job_id | UUID FK |
 | resume_id | UUID FK |
 | status | VARCHAR(30) |
-| submitted_at | TIMESTAMP |
+| created_at | TIMESTAMP |
+| updated_at | TIMESTAMP |
 
 ### Design Decision
 
@@ -149,7 +151,8 @@ Stores AI evaluation results for submitted applications.
 | matching_skills | TEXT |
 | missing_skills | TEXT |
 | ai_explanation | TEXT |
-| evaluated_at | TIMESTAMP |
+| created_at | TIMESTAMP |
+| updated_at | TIMESTAMP |
 
 ### Design Decision
 
