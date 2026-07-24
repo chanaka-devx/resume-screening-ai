@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from sqlalchemy import text
 
+from app.api.routes.auth import router as auth_router
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 
@@ -21,7 +22,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ── Routers ───────────────────────────────────────────────────────────────────
+app.include_router(auth_router, prefix="/api/v1")
 
-@app.get("/health")
+
+# ── Health check ──────────────────────────────────────────────────────────────
+@app.get("/health", tags=["Health"])
 def health_check():
-    return {"status": "healthy"}
+    return {"status": "healthy"}
+
