@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.enums.job_location import JobLocation
 from app.enums.job_status import JobStatus
 from app.models.job_posting import JobPosting
 from app.models.recruiter import Recruiter
@@ -22,6 +23,7 @@ class JobService:
             recruiter_id=str(job.recruiter_id),
             title=job.title,
             description=job.description,
+            location=job.location,
             deadline=job.deadline,
             status=job.status,
             created_at=job.created_at.isoformat(),
@@ -58,6 +60,7 @@ class JobService:
             recruiter_id=recruiter.id,
             title=data.title,
             description=data.description,
+            location=data.location,
             deadline=data.deadline,
             status=JobStatus.DRAFT,
         )
@@ -72,15 +75,17 @@ class JobService:
         page: int = 1,
         limit: int = 10,
         status_filter: JobStatus | None = None,
+        location_filter: JobLocation | None = None,
         search: str | None = None,
     ) -> JobListResponse:
         """
         Return a paginated list of jobs owned by the authenticated recruiter.
 
         Supports:
-          - page / limit  for pagination
-          - status_filter for exact status match (draft | published | closed)
-          - search        for case-insensitive substring search in title/description
+          - page / limit     for pagination
+          - status_filter    for exact status match (draft | published | closed)
+          - location_filter  for exact location match (on-site | hybrid | remote)
+          - search           for case-insensitive substring search in title/description
         """
         if page < 1:
             raise HTTPException(
@@ -99,6 +104,7 @@ class JobService:
             skip=skip,
             limit=limit,
             status=status_filter,
+            location=location_filter,
             search=search,
         )
         total_pages = max(1, -(-total // limit))  # ceiling division
@@ -177,6 +183,7 @@ class JobService:
             id=str(job.id),
             title=job.title,
             description=job.description,
+            location=job.location,
             deadline=job.deadline,
             posted_at=job.created_at.isoformat(),
         )
@@ -186,6 +193,7 @@ class JobService:
         page: int = 1,
         limit: int = 10,
         search: str | None = None,
+        location: JobLocation | None = None,
     ) -> PublicJobListResponse:
         """
         Return paginated published jobs — no authentication required.
@@ -194,9 +202,7 @@ class JobService:
         Supports:
           - page / limit  for pagination
           - search        for case-insensitive substring match on title/description
-
-        Note: location and employment_type filters are not supported because those
-        fields do not exist in the current JobPosting model.
+          - location      for exact match on job location type
         """
         if page < 1:
             raise HTTPException(
@@ -214,6 +220,7 @@ class JobService:
             skip=skip,
             limit=limit,
             search=search,
+            location=location,
         )
         total_pages = max(1, -(-total // limit))
 

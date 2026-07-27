@@ -14,6 +14,7 @@ params:query {
   page: 1
   limit: 10
   ~status: draft
+  ~location: remote
   ~search: backend
 }
 
@@ -32,11 +33,13 @@ docs {
   | page     | integer | 1       | Page number (1-based)                            |
   | limit    | integer | 10      | Items per page (max 100)                         |
   | status   | string  | —       | Filter: `draft` / `published` / `closed`         |
+  | location | string  | —       | Filter: `on-site` / `hybrid` / `remote`          |
   | search   | string  | —       | Case-insensitive search in title and description |
   
   ### Example requests
-  - All jobs (page 2):  `GET /jobs?page=2&limit=10`
-  - Draft only:         `GET /jobs?status=draft`
-  - Search:             `GET /jobs?search=backend`
-  - Combined:           `GET /jobs?status=published&search=engineer&page=1&limit=5`
+  - All jobs (page 2):     `GET /jobs?page=2&limit=10`
+  - Draft only:            `GET /jobs?status=draft`
+  - Remote jobs only:      `GET /jobs?location=remote`
+  - Search:                `GET /jobs?search=backend`
+  - Combined:              `GET /jobs?status=published&location=hybrid&search=engineer`
 }

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.database import get_db
+from app.enums.job_location import JobLocation
 from app.schemas.job import PublicJobListResponse
 from app.services.job_service import JobService
 
@@ -27,22 +28,25 @@ async def list_public_jobs(
         max_length=100,
         description="Search in job title and description",
     ),
+    location: JobLocation | None = Query(default=None, description="Filter by location type"),
 ) -> PublicJobListResponse:
     """
     Browse all **published** job postings — open to anyone, no login required.
 
     **Filters**
-    - `search` — case-insensitive substring match on title or description
+    - `search`   — case-insensitive substring match on title or description
+    - `location` — one of `on-site`, `hybrid`, `remote`
 
     **Pagination**
     - `page`  — 1-based page number (default 1)
     - `limit` — results per page, max 100 (default 10)
 
     **Response fields** (applicant-safe — no internal recruiter data)
-    - `id`, `title`, `description`, `deadline`, `posted_at`
+    - `id`, `title`, `description`, `location`, `deadline`, `posted_at`
     """
     return await JobService(session).list_public_jobs(
         page=page,
         limit=limit,
         search=search,
+        location=location,
     )

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.auth import get_current_recruiter
 from app.dependencies.database import get_db
+from app.enums.job_location import JobLocation
 from app.enums.job_status import JobStatus
 from app.models.recruiter import Recruiter
 from app.schemas.job import JobCreateRequest, JobListResponse, JobResponse
@@ -47,14 +48,16 @@ async def list_jobs(
     page: int = Query(default=1, ge=1, description="Page number (1-based)"),
     limit: int = Query(default=10, ge=1, le=100, description="Items per page (max 100)"),
     status: JobStatus | None = Query(default=None, description="Filter by job status"),
+    location: JobLocation | None = Query(default=None, description="Filter by location type"),
     search: str | None = Query(default=None, min_length=1, max_length=100, description="Search in title and description"),
 ) -> JobListResponse:
     """
     Return a paginated list of **your own** job postings.
 
     **Filters**
-    - `status` — one of `draft`, `published`, `closed`
-    - `search` — case-insensitive substring match on title or description
+    - `status`   — one of `draft`, `published`, `closed`
+    - `location` — one of `on-site`, `hybrid`, `remote`
+    - `search`   — case-insensitive substring match on title or description
 
     **Pagination**
     - `page`  — 1-based page number (default 1)
@@ -65,6 +68,7 @@ async def list_jobs(
         page=page,
         limit=limit,
         status_filter=status,
+        location_filter=location,
         search=search,
     )
 

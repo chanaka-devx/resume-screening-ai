@@ -1,12 +1,14 @@
 from datetime import date
 from pydantic import BaseModel, Field, field_validator
 
+from app.enums.job_location import JobLocation
 from app.enums.job_status import JobStatus
 
 
 class JobCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: str = Field(..., min_length=1)
+    location: JobLocation | None = None
     deadline: date | None = None
 
     @field_validator("deadline")
@@ -22,6 +24,7 @@ class JobResponse(BaseModel):
     recruiter_id: str
     title: str
     description: str
+    location: JobLocation | None
     deadline: date | None
     status: JobStatus
     created_at: str
@@ -49,6 +52,7 @@ class PublicJobResponse(BaseModel):
     id: str
     title: str
     description: str
+    location: JobLocation | None
     deadline: date | None
     posted_at: str  # maps to created_at — applicant-friendly name
 
