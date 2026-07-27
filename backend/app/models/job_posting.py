@@ -20,7 +20,7 @@ class JobPosting(BaseModel):
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str] = mapped_column(Text)
     deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
-    status: Mapped[str] = mapped_column(String(30), default="open")
+    status: Mapped[str] = mapped_column(String(30), default="draft")
 
     recruiter: Mapped["Recruiter"] = relationship(
         back_populates="job_postings",
