@@ -25,3 +25,10 @@ class JobRepository:
             select(JobPosting).where(JobPosting.id == job_id)
         )
         return result.scalar_one_or_none()
+
+    async def update(self, job: JobPosting) -> JobPosting:
+        """Persist changes to an existing JobPosting row and return the refreshed instance."""
+        await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(job)
+        return job

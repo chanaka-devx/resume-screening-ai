@@ -1,6 +1,8 @@
 from datetime import date
 from pydantic import BaseModel, Field, field_validator
 
+from app.enums.job_status import JobStatus
+
 
 class JobCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
@@ -21,7 +23,7 @@ class JobResponse(BaseModel):
     title: str
     description: str
     deadline: date | None
-    status: str
+    status: JobStatus
     created_at: str
     updated_at: str
 

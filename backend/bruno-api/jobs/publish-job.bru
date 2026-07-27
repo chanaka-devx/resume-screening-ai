@@ -1,0 +1,19 @@
+meta {
+  name: Publish Job
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{base_url}}/api/v1/jobs/{{job_id}}/publish
+  body: none
+  auth: bearer
+}
+
+headers {
+  job_id: cdb8131a-1220-4e08-acd2-46f93b348d8e
+}
+
+auth:bearer {
+  token: {{token}}
+}
