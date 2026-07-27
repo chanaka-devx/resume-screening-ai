@@ -31,9 +31,34 @@ class JobResponse(BaseModel):
 
 
 class JobListResponse(BaseModel):
-    """Paginated list of job postings."""
+    """Paginated list of job postings (authenticated recruiter view)."""
 
     items: list[JobResponse]
+    total: int
+    page: int
+    limit: int
+    total_pages: int
+
+
+class PublicJobResponse(BaseModel):
+    """
+    Slim public view of a job posting — safe to expose without authentication.
+    Omits internal fields like recruiter_id and updated_at.
+    """
+
+    id: str
+    title: str
+    description: str
+    deadline: date | None
+    posted_at: str  # maps to created_at — applicant-friendly name
+
+    model_config = {"from_attributes": True}
+
+
+class PublicJobListResponse(BaseModel):
+    """Paginated list of published jobs — no auth required."""
+
+    items: list[PublicJobResponse]
     total: int
     page: int
     limit: int

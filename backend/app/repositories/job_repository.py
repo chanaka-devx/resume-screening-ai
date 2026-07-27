@@ -83,3 +83,46 @@ class JobRepository:
         items = list(rows_result.scalars().all())
 
         return items, total
+
+    async def get_published_jobs(
+        self,
+        skip: int = 0,
+        limit: int = 10,
+        search: str | None = None,
+    ) -> tuple[list[JobPosting], int]:
+        """
+        Return a page of PUBLISHED job postings (public, no auth required).
+
+        Filters:
+          - status is always PUBLISHED (hard-coded — not caller-controlled)
+          - search: case-insensitive substring match on title or description
+
+        Returns:
+          (items, total) where total respects the active filters.
+        """
+        base_filter = [JobPosting.status == JobStatus.PUBLISHED]
+
+        if search:
+            term = f"%{search.strip()}%"
+            base_filter.append(
+                or_(
+                    JobPosting.title.ilike(term),
+                    JobPosting.description.ilike(term),
+                )
+            )
+
+        count_result = await self.session.execute(
+            select(func.count()).select_from(JobPosting).where(*base_filter)
+        )
+        total = count_result.scalar_one()
+
+        rows_result = await self.session.execute(
+            select(JobPosting)
+            .where(*base_filter)
+            .order_by(JobPosting.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        items = list(rows_result.scalars().all())
+
+        return items, total

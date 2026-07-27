@@ -5,7 +5,7 @@ from app.enums.job_status import JobStatus
 from app.models.job_posting import JobPosting
 from app.models.recruiter import Recruiter
 from app.repositories.job_repository import JobRepository
-from app.schemas.job import JobCreateRequest, JobListResponse, JobResponse
+from app.schemas.job import JobCreateRequest, JobListResponse, JobResponse, PublicJobListResponse, PublicJobResponse
 
 
 class JobService:
@@ -168,3 +168,59 @@ class JobService:
         job.status = JobStatus.CLOSED
         updated_job = await self.repo.update(job)
         return self._to_response(updated_job)
+
+    # ── public listing ───────────────────────────────────────────────────
+
+    def _to_public_response(self, job: JobPosting) -> PublicJobResponse:
+        """Map a JobPosting to the slim public-facing schema."""
+        return PublicJobResponse(
+            id=str(job.id),
+            title=job.title,
+            description=job.description,
+            deadline=job.deadline,
+            posted_at=job.created_at.isoformat(),
+        )
+
+    async def list_public_jobs(
+        self,
+        page: int = 1,
+        limit: int = 10,
+        search: str | None = None,
+    ) -> PublicJobListResponse:
+        """
+        Return paginated published jobs — no authentication required.
+
+        Only PUBLISHED jobs are ever returned (enforced in the repository).
+        Supports:
+          - page / limit  for pagination
+          - search        for case-insensitive substring match on title/description
+
+        Note: location and employment_type filters are not supported because those
+        fields do not exist in the current JobPosting model.
+        """
+        if page < 1:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="page must be >= 1.",
+            )
+        if limit < 1 or limit > 100:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="limit must be between 1 and 100.",
+            )
+
+        skip = (page - 1) * limit
+        items, total = await self.repo.get_published_jobs(
+            skip=skip,
+            limit=limit,
+            search=search,
+        )
+        total_pages = max(1, -(-total // limit))
+
+        return PublicJobListResponse(
+            items=[self._to_public_response(job) for job in items],
+            total=total,
+            page=page,
+            limit=limit,
+            total_pages=total_pages,
+        )
