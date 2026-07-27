@@ -5,7 +5,7 @@ from app.enums.job_status import JobStatus
 from app.models.job_posting import JobPosting
 from app.models.recruiter import Recruiter
 from app.repositories.job_repository import JobRepository
-from app.schemas.job import JobCreateRequest, JobResponse
+from app.schemas.job import JobCreateRequest, JobListResponse, JobResponse
 
 
 class JobService:
@@ -63,6 +63,53 @@ class JobService:
         )
         saved_job = await self.repo.create(job)
         return self._to_response(saved_job)
+
+    # ── list (recruiter dashboard) ────────────────────────────────────────────
+
+    async def list_recruiter_jobs(
+        self,
+        recruiter: Recruiter,
+        page: int = 1,
+        limit: int = 10,
+        status_filter: JobStatus | None = None,
+        search: str | None = None,
+    ) -> JobListResponse:
+        """
+        Return a paginated list of jobs owned by the authenticated recruiter.
+
+        Supports:
+          - page / limit  for pagination
+          - status_filter for exact status match (draft | published | closed)
+          - search        for case-insensitive substring search in title/description
+        """
+        if page < 1:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="page must be >= 1.",
+            )
+        if limit < 1 or limit > 100:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="limit must be between 1 and 100.",
+            )
+
+        skip = (page - 1) * limit
+        items, total = await self.repo.get_jobs_by_recruiter(
+            recruiter_id=recruiter.id,
+            skip=skip,
+            limit=limit,
+            status=status_filter,
+            search=search,
+        )
+        total_pages = max(1, -(-total // limit))  # ceiling division
+
+        return JobListResponse(
+            items=[self._to_response(job) for job in items],
+            total=total,
+            page=page,
+            limit=limit,
+            total_pages=total_pages,
+        )
 
     # ── publish ───────────────────────────────────────────────────────────────
 

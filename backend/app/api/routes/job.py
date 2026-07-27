@@ -1,12 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.auth import get_current_recruiter
 from app.dependencies.database import get_db
+from app.enums.job_status import JobStatus
 from app.models.recruiter import Recruiter
-from app.schemas.job import JobCreateRequest, JobResponse
+from app.schemas.job import JobCreateRequest, JobListResponse, JobResponse
 from app.services.job_service import JobService
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
@@ -32,6 +33,40 @@ async def create_job(
     """
     return await JobService(session).create_job(data, current_recruiter)
 
+
+# ── GET /jobs ─────────────────────────────────────────────────────────
+@router.get(
+    "",
+    response_model=JobListResponse,
+    status_code=200,
+    summary="List jobs for the authenticated recruiter (RS-018)",
+)
+async def list_jobs(
+    current_recruiter: Annotated[Recruiter, Depends(get_current_recruiter)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+    page: int = Query(default=1, ge=1, description="Page number (1-based)"),
+    limit: int = Query(default=10, ge=1, le=100, description="Items per page (max 100)"),
+    status: JobStatus | None = Query(default=None, description="Filter by job status"),
+    search: str | None = Query(default=None, min_length=1, max_length=100, description="Search in title and description"),
+) -> JobListResponse:
+    """
+    Return a paginated list of **your own** job postings.
+
+    **Filters**
+    - `status` — one of `draft`, `published`, `closed`
+    - `search` — case-insensitive substring match on title or description
+
+    **Pagination**
+    - `page`  — 1-based page number (default 1)
+    - `limit` — results per page, max 100 (default 10)
+    """
+    return await JobService(session).list_recruiter_jobs(
+        recruiter=current_recruiter,
+        page=page,
+        limit=limit,
+        status_filter=status,
+        search=search,
+    )
 
 # ── PATCH /jobs/{job_id}/publish ─────────────────────────────────────────────
 @router.patch(

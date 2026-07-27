@@ -28,3 +28,13 @@ class JobResponse(BaseModel):
     updated_at: str
 
     model_config = {"from_attributes": True}
+
+
+class JobListResponse(BaseModel):
+    """Paginated list of job postings."""
+
+    items: list[JobResponse]
+    total: int
+    page: int
+    limit: int
+    total_pages: int

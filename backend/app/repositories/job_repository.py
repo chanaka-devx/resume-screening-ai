@@ -1,8 +1,9 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.enums.job_status import JobStatus
 from app.models.job_posting import JobPosting
 
 
@@ -32,3 +33,53 @@ class JobRepository:
         await self.session.commit()
         await self.session.refresh(job)
         return job
+
+    async def get_jobs_by_recruiter(
+        self,
+        recruiter_id: UUID,
+        skip: int = 0,
+        limit: int = 10,
+        status: JobStatus | None = None,
+        search: str | None = None,
+    ) -> tuple[list[JobPosting], int]:
+        """
+        Return a page of job postings owned by the recruiter.
+
+        Filters:
+          - status: exact match on JobStatus value
+          - search: case-insensitive substring match on title or description
+
+        Returns:
+          (items, total) where total is the unfiltered count for pagination math.
+        """
+        base_filter = [JobPosting.recruiter_id == recruiter_id]
+
+        if status is not None:
+            base_filter.append(JobPosting.status == status)
+
+        if search:
+            term = f"%{search.strip()}%"
+            base_filter.append(
+                or_(
+                    JobPosting.title.ilike(term),
+                    JobPosting.description.ilike(term),
+                )
+            )
+
+        # Total count (respects filters)
+        count_result = await self.session.execute(
+            select(func.count()).select_from(JobPosting).where(*base_filter)
+        )
+        total = count_result.scalar_one()
+
+        # Paginated rows, newest first
+        rows_result = await self.session.execute(
+            select(JobPosting)
+            .where(*base_filter)
+            .order_by(JobPosting.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        items = list(rows_result.scalars().all())
+
+        return items, total
