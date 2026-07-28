@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.database import get_db
 from app.enums.job_location import JobLocation
-from app.schemas.job import PublicJobListResponse
+from app.schemas.job import PublicJobListResponse, PublicJobResponse
 from app.services.job_service import JobService
 
 router = APIRouter(prefix="/public", tags=["Public"])
@@ -50,3 +50,23 @@ async def list_public_jobs(
         search=search,
         location=location,
     )
+
+
+# ── GET /public/jobs/{job_id} ─────────────────────────────────────────────
+@router.get(
+    "/jobs/{job_id}",
+    response_model=PublicJobResponse,
+    status_code=200,
+    summary="Get a single published job posting (no auth required)",
+)
+async def get_public_job(
+    job_id: str,
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> PublicJobResponse:
+    """
+    Retrieve a single **published** job posting by its ID.
+
+    Returns **404** if the job does not exist or is not published.
+    Draft and closed jobs are intentionally hidden from public view.
+    """
+    return await JobService(session).get_public_job(job_id)

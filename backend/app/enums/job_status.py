@@ -13,3 +13,4 @@ class JobStatus(str, Enum):
     DRAFT = "draft"
     PUBLISHED = "published"
     CLOSED = "closed"
+    DELETED = "deleted"

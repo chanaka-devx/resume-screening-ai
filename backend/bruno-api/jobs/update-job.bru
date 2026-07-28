@@ -1,0 +1,33 @@
+meta {
+  name: Update Job
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{base_url}}/api/v1/jobs/{{job_id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "title": "Lead Backend Engineer (Updated)",
+    "description": "Updated description with more details about the role."
+  }
+}
+
+docs {
+  ## Update Draft or Published Job
+  
+  Updates an existing job posting. Both **draft** and **published** jobs can be updated.
+  
+  All fields are optional; only send what you wish to change.
+  
+  Returns **404** if the job does not exist or you do not own it.
+  Returns **409** if the job is closed.
+}

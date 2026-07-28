@@ -6,7 +6,14 @@ from app.enums.job_status import JobStatus
 from app.models.job_posting import JobPosting
 from app.models.recruiter import Recruiter
 from app.repositories.job_repository import JobRepository
-from app.schemas.job import JobCreateRequest, JobListResponse, JobResponse, PublicJobListResponse, PublicJobResponse
+from app.schemas.job import (
+    JobCreateRequest,
+    JobListResponse,
+    JobResponse,
+    JobUpdateRequest,
+    PublicJobListResponse,
+    PublicJobResponse,
+)
 
 
 class JobService:
@@ -36,7 +43,7 @@ class JobService:
         Raises 404 if not found, 403 if not the owner.
         """
         job = await self.repo.get_by_id(job_id)
-        if job is None:
+        if job is None or job.status == JobStatus.DELETED:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Job not found.",
@@ -66,6 +73,39 @@ class JobService:
         )
         saved_job = await self.repo.create(job)
         return self._to_response(saved_job)
+
+    async def get_job(self, job_id: str, recruiter: Recruiter) -> JobResponse:
+        """Retrieve a single job posting owned by the recruiter."""
+        job = await self._get_owned_job(job_id, recruiter)
+        return self._to_response(job)
+
+    async def update_job(
+        self, job_id: str, data: JobUpdateRequest, recruiter: Recruiter
+    ) -> JobResponse:
+        """
+        Update an existing job posting.
+        Jobs in DRAFT or PUBLISHED status can be updated.
+        """
+        job = await self._get_owned_job(job_id, recruiter)
+
+        if job.status == JobStatus.CLOSED:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Closed jobs cannot be updated.",
+            )
+
+        # Update fields if they were provided in the request
+        if data.title is not None:
+            job.title = data.title
+        if data.description is not None:
+            job.description = data.description
+        if data.location is not None:
+            job.location = data.location
+        if data.deadline is not None:
+            job.deadline = data.deadline
+
+        updated_job = await self.repo.update(job)
+        return self._to_response(updated_job)
 
     # ── list (recruiter dashboard) ────────────────────────────────────────────
 
@@ -175,7 +215,34 @@ class JobService:
         updated_job = await self.repo.update(job)
         return self._to_response(updated_job)
 
+    # ── delete ───────────────────────────────────────────────────────────────
+
+    async def delete_job(self, job_id: str, recruiter: Recruiter) -> JobResponse:
+        """
+        Soft delete a job posting by setting its status to DELETED.
+        """
+        job = await self._get_owned_job(job_id, recruiter)
+        job.status = JobStatus.DELETED
+        updated_job = await self.repo.update(job)
+        return self._to_response(updated_job)
+
     # ── public listing ───────────────────────────────────────────────────
+
+    async def get_public_job(self, job_id: str) -> PublicJobResponse:
+        """
+        Return a single published job posting by ID.
+
+        Raises:
+            404 if the job does not exist or is not published.
+                (Draft/closed jobs are intentionally not revealed.)
+        """
+        job = await self.repo.get_by_id(job_id)
+        if job is None or job.status != JobStatus.PUBLISHED:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job not found.",
+            )
+        return self._to_public_response(job)
 
     def _to_public_response(self, job: JobPosting) -> PublicJobResponse:
         """Map a JobPosting to the slim public-facing schema."""

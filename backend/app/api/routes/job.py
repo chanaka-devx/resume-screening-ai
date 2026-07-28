@@ -8,7 +8,12 @@ from app.dependencies.database import get_db
 from app.enums.job_location import JobLocation
 from app.enums.job_status import JobStatus
 from app.models.recruiter import Recruiter
-from app.schemas.job import JobCreateRequest, JobListResponse, JobResponse
+from app.schemas.job import (
+    JobCreateRequest,
+    JobListResponse,
+    JobResponse,
+    JobUpdateRequest,
+)
 from app.services.job_service import JobService
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
@@ -72,6 +77,49 @@ async def list_jobs(
         search=search,
     )
 
+# ── GET /jobs/{job_id} ───────────────────────────────────────────────────────
+@router.get(
+    "/{job_id}",
+    response_model=JobResponse,
+    status_code=200,
+    summary="Get a single job posting",
+)
+async def get_job(
+    job_id: str,
+    current_recruiter: Annotated[Recruiter, Depends(get_current_recruiter)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> JobResponse:
+    """
+    Retrieve one of your job postings.
+    
+    - Returns **404** if the job does not exist or you do not own it.
+    """
+    return await JobService(session).get_job(job_id, current_recruiter)
+
+
+# ── PUT /jobs/{job_id} ───────────────────────────────────────────────────────
+@router.put(
+    "/{job_id}",
+    response_model=JobResponse,
+    status_code=200,
+    summary="Update a draft or published job",
+)
+async def update_job(
+    job_id: str,
+    data: JobUpdateRequest,
+    current_recruiter: Annotated[Recruiter, Depends(get_current_recruiter)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> JobResponse:
+    """
+    Update a job posting.
+    
+    - Jobs in **DRAFT** or **PUBLISHED** status can be updated.
+    - All fields are optional. Only send the fields you wish to update.
+    - Returns **409 Conflict** if the job is closed.
+    """
+    return await JobService(session).update_job(job_id, data, current_recruiter)
+
+
 # ── PATCH /jobs/{job_id}/publish ─────────────────────────────────────────────
 @router.patch(
     "/{job_id}/publish",
@@ -112,3 +160,25 @@ async def close_job(
     - Returns **409 Conflict** if the job is already closed or still a draft.
     """
     return await JobService(session).close_job(job_id, current_recruiter)
+
+
+# ── DELETE /jobs/{job_id} ────────────────────────────────────────────────────
+@router.delete(
+    "/{job_id}",
+    response_model=JobResponse,
+    status_code=200,
+    summary="Soft delete a job posting",
+)
+async def delete_job(
+    job_id: str,
+    current_recruiter: Annotated[Recruiter, Depends(get_current_recruiter)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> JobResponse:
+    """
+    Soft delete a job posting.
+    
+    - The job must exist and be owned by the authenticated recruiter.
+    - Changes the status to **DELETED**.
+    - Deleted jobs are no longer visible via the list or detail APIs.
+    """
+    return await JobService(session).delete_job(job_id, current_recruiter)

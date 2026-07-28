@@ -55,7 +55,10 @@ class JobRepository:
         Returns:
           (items, total) where total is the unfiltered count for pagination math.
         """
-        base_filter = [JobPosting.recruiter_id == recruiter_id]
+        base_filter = [
+            JobPosting.recruiter_id == recruiter_id,
+            JobPosting.status != JobStatus.DELETED,
+        ]
 
         if status is not None:
             base_filter.append(JobPosting.status == status)

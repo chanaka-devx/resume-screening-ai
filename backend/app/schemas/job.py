@@ -19,6 +19,22 @@ class JobCreateRequest(BaseModel):
         return v
 
 
+class JobUpdateRequest(BaseModel):
+    """All fields are optional — only send what you want to change."""
+
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = Field(default=None, min_length=1)
+    location: JobLocation | None = None
+    deadline: date | None = None
+
+    @field_validator("deadline")
+    @classmethod
+    def validate_deadline(cls, v: date | None) -> date | None:
+        if v is not None and v < date.today():
+            raise ValueError("deadline must be a future date")
+        return v
+
+
 class JobResponse(BaseModel):
     id: str
     recruiter_id: str

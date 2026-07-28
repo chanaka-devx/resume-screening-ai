@@ -1,0 +1,28 @@
+meta {
+  name: Get Job
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/api/v1/jobs/{{job_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  ## Get Single Recruiter Job
+
+  Returns a single job posting owned by the authenticated recruiter.
+
+  Returns **404** if the job does not exist or you do not own it.
+
+  ### Path Parameter
+  | Param  | Description            |
+  |--------|------------------------|
+  | job_id | UUID of the job posting |
+}
