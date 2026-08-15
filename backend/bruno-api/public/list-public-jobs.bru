@@ -1,0 +1,42 @@
+meta {
+  name: List Public Jobs
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/v1/public/jobs?page=1
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 1
+  ~limit: 10
+  ~search: python
+}
+
+docs {
+  ## Public Job Listings
+  
+  Returns paginated **published** jobs. No authentication required.
+  
+  ### Query Parameters
+  | Param  | Type    | Default | Description                                      |
+  |--------|---------|---------|--------------------------------------------------|
+  | page   | integer | 1       | Page number (1-based)                            |
+  | limit  | integer | 10      | Items per page (max 100)                         |
+  | search | string  | —       | Case-insensitive search in title and description |
+  
+  ### Response fields (applicant-safe)
+  `id` · `title` · `description` · `deadline` · `posted_at`
+  
+  ### Example requests
+  - All published jobs:        `GET /api/v1/public/jobs`
+  - Page 2:                    `GET /api/v1/public/jobs?page=2&limit=10`
+  - Search:                    `GET /api/v1/public/jobs?search=python`
+  
+  > **Note:** `location` and `employment_type` filters are not available because
+  > those fields were removed from the job model. Add them back to the
+  > JobPosting model if they are needed.
+}

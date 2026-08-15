@@ -1,0 +1,26 @@
+meta {
+  name: Delete Job
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{base_url}}/api/v1/jobs/{{job_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  ## Delete Job
+
+  Soft deletes a job posting. 
+
+  Returns **200 OK** and changes the job status to `deleted`.
+  Once deleted, the job will no longer appear in listings or be retrievable by its ID.
+
+  Returns **404** if the job does not exist, was already deleted, or you do not own it.
+}

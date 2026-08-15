@@ -1,0 +1,31 @@
+meta {
+  name: Create Job
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/jobs
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "title": "Senior Backend Engineer",
+    "description": "We are looking for an experienced backend engineer to join our team.",
+    "location": "remote",
+    "deadline": "2026-12-31"
+  }
+}
+
+script:post-response {
+  // Auto-save the job ID for use in publish/close requests
+  if (res.status === 201) {
+    bru.setEnvVar("job_id", res.body.id);
+  }
+}

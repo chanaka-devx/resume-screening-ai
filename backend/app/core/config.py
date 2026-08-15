@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     JWT_ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
+    DEBUG: bool = True
 
     model_config = SettingsConfigDict(
         env_file=".env",
