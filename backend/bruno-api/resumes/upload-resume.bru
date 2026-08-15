@@ -1,0 +1,23 @@
+meta {
+  name: Upload Resume
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/resumes/upload
+  body: multipart-form
+  auth: none
+}
+
+body:multipart-form {
+  file: @file()
+}
+
+script:post-response {
+  // Auto-save the resume and applicant IDs for use in subsequent requests
+  if (res.status === 201) {
+    bru.setEnvVar("resume_id", res.body.resume.id);
+    bru.setEnvVar("applicant_id", res.body.applicant.id);
+  }
+}
