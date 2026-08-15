@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Resume Screening AI",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

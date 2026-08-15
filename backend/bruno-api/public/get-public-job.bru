@@ -1,0 +1,28 @@
+meta {
+  name: Get Public Job
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/api/v1/public/jobs/{{job_id}}
+  body: none
+  auth: none
+}
+
+docs {
+  ## Get Single Published Job
+
+  Returns one published job posting by ID. No authentication required.
+
+  Returns **404** if the job does not exist or is not in `published` status.
+  Draft and closed jobs are intentionally hidden.
+
+  ### Path Parameter
+  | Param  | Description            |
+  |--------|------------------------|
+  | job_id | UUID of the job posting |
+
+  ### Response fields (applicant-safe)
+  `id` · `title` · `description` · `location` · `deadline` · `posted_at`
+}

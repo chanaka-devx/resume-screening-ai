@@ -8,5 +8,5 @@ ssl_context = ssl.create_default_context()
 
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=True,
+    echo=settings.DEBUG,
 )
