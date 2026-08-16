@@ -7,6 +7,7 @@ from app.api.routes.auth import router as auth_router
 from app.api.routes.job import router as job_router
 from app.api.routes.public import router as public_router
 from app.api.routes.resume import router as resume_router
+from app.api.routes.application import router as application_router
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 
@@ -30,6 +31,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(job_router, prefix="/api/v1")
 app.include_router(public_router, prefix="/api/v1")
 app.include_router(resume_router, prefix="/api/v1")
+app.include_router(application_router, prefix="/api/v1")
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
