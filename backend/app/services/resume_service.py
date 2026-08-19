@@ -13,7 +13,12 @@ from app.models.applicant import Applicant
 from app.models.resume import Resume
 from app.repositories.applicant_repository import ApplicantRepository
 from app.repositories.resume_repository import ResumeRepository
-from app.schemas.resume import ApplicantResponse, ResumeResponse, ResumeUploadResponse
+from app.schemas.resume import (
+    ApplicantResponse,
+    ApplicantUpdateRequest,
+    ResumeResponse,
+    ResumeUploadResponse,
+)
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -213,3 +218,28 @@ class ResumeService:
             applicant=self._to_applicant_response(applicant),
             resume=self._to_resume_response(saved_resume),
         )
+
+    async def update_applicant(
+        self, applicant_id: uuid.UUID, data: ApplicantUpdateRequest
+    ) -> ApplicantResponse:
+        """Update an applicant's details (e.g. after manual confirmation/changes)."""
+        applicant = await self.applicant_repo.get_by_id(applicant_id)
+        if applicant is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Applicant not found.",
+            )
+
+        if data.full_name is not None:
+            applicant.full_name = data.full_name
+        if data.email is not None:
+            applicant.email = data.email
+        if data.phone is not None:
+            applicant.phone = data.phone
+        if data.linkedin_url is not None:
+            applicant.linkedin_url = data.linkedin_url
+        if data.github_url is not None:
+            applicant.github_url = data.github_url
+
+        updated = await self.applicant_repo.update(applicant)
+        return self._to_applicant_response(updated)

@@ -12,6 +12,7 @@ class ApplicationSubmitRequest(BaseModel):
 
     job_id: uuid.UUID
     resume_id: uuid.UUID
+    message: str | None = None
 
 
 # ── Response schemas ──────────────────────────────────────────────────────────
@@ -22,6 +23,7 @@ class ApplicationResponse(BaseModel):
     id: str
     job_id: str
     resume_id: str
+    message: str | None = None
     status: ApplicationStatus = ApplicationStatus.SUBMITTED
     created_at: str
     updated_at: str

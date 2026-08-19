@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -23,7 +23,8 @@ class Application(BaseModel):
         nullable=False,
     )
 
-    status: Mapped[str] = mapped_column(String(30), default="pending")
+    status: Mapped[str] = mapped_column(String(30), default="submitted")
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     job_posting: Mapped["JobPosting"] = relationship(
         back_populates="applications",

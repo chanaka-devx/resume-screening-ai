@@ -25,6 +25,7 @@ class ApplicationService:
             id=str(application.id),
             job_id=str(application.job_id),
             resume_id=str(application.resume_id),
+            message=application.message,
             status=application.status,
             created_at=application.created_at.isoformat(),
             updated_at=application.updated_at.isoformat(),
@@ -84,6 +85,7 @@ class ApplicationService:
         application = Application(
             job_id=data.job_id,
             resume_id=data.resume_id,
+            message=data.message,
             status=ApplicationStatus.SUBMITTED,
         )
         saved = await self.app_repo.create(application)

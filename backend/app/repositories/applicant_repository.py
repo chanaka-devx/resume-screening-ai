@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,9 +19,24 @@ class ApplicantRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_id(self, applicant_id: UUID) -> Applicant | None:
+        """Return the applicant with the given UUID, or None."""
+        result = await self.session.execute(
+            select(Applicant).where(Applicant.id == applicant_id)
+        )
+        return result.scalar_one_or_none()
+
     async def create(self, applicant: Applicant) -> Applicant:
         """Persist a new Applicant row and return the refreshed instance."""
         self.session.add(applicant)
         await self.session.commit()
         await self.session.refresh(applicant)
         return applicant
+
+    async def update(self, applicant: Applicant) -> Applicant:
+        """Persist changes to an existing Applicant row and return the refreshed instance."""
+        await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(applicant)
+        return applicant
+
