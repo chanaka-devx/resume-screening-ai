@@ -18,6 +18,17 @@ class ApplicantResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ApplicantUpdateRequest(BaseModel):
+    """Payload to update an applicant's details."""
+
+    full_name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    linkedin_url: str | None = None
+    github_url: str | None = None
+
+
+
 # ── Resume schemas ────────────────────────────────────────────────────────────
 
 class ResumeResponse(BaseModel):

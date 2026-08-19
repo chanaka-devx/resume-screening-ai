@@ -119,6 +119,7 @@ Stores job applications submitted by applicants.
 | id | UUID |
 | job_id | UUID FK |
 | resume_id | UUID FK |
+| message | TEXT NULL |
 | status | VARCHAR(30) |
 | created_at | TIMESTAMP |
 | updated_at | TIMESTAMP |

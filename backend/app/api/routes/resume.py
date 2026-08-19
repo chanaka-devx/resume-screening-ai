@@ -1,10 +1,15 @@
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.database import get_db
-from app.schemas.resume import ResumeUploadResponse
+from app.schemas.resume import (
+    ApplicantResponse,
+    ApplicantUpdateRequest,
+    ResumeUploadResponse,
+)
 from app.services.resume_service import ResumeService
 
 router = APIRouter(prefix="/resumes", tags=["Resumes"])
@@ -38,3 +43,20 @@ async def upload_resume(
     - `502` — R2 storage upload failed.
     """
     return await ResumeService(session).upload_resume(file=file)
+
+
+# ── PATCH /resumes/applicant/{applicant_id} ──────────────────────────────────
+@router.patch(
+    "/applicant/{applicant_id}",
+    response_model=ApplicantResponse,
+    status_code=200,
+    summary="Update applicant details",
+)
+async def update_applicant(
+    applicant_id: uuid.UUID,
+    data: ApplicantUpdateRequest,
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> ApplicantResponse:
+    """Update applicant information (e.g. when user submits with manual corrections)."""
+    return await ResumeService(session).update_applicant(applicant_id, data)
+
