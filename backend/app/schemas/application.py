@@ -15,6 +15,13 @@ class ApplicationSubmitRequest(BaseModel):
     message: str | None = None
 
 
+class ApplicationStatusUpdateRequest(BaseModel):
+    """Payload to update an application's status."""
+
+    status: ApplicationStatus
+
+
+
 # ── Response schemas ──────────────────────────────────────────────────────────
 
 class ApplicationResponse(BaseModel):

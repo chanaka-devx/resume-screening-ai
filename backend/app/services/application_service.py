@@ -37,7 +37,28 @@ def _get_r2_client():
     )
 
 
+ALLOWED_STATUS_TRANSITIONS: dict[ApplicationStatus, set[ApplicationStatus]] = {
+    ApplicationStatus.SUBMITTED: {
+        ApplicationStatus.UNDER_REVIEW,
+        ApplicationStatus.REJECTED,
+    },
+    ApplicationStatus.UNDER_REVIEW: {
+        ApplicationStatus.SHORTLISTED,
+        ApplicationStatus.REJECTED,
+    },
+    ApplicationStatus.SHORTLISTED: {
+        ApplicationStatus.INTERVIEW,
+        ApplicationStatus.REJECTED,
+    },
+    ApplicationStatus.INTERVIEW: {
+        ApplicationStatus.REJECTED,
+    },
+    ApplicationStatus.REJECTED: set(),
+}
+
+
 class ApplicationService:
+
 
     """Business logic for job application operations."""
 
@@ -307,5 +328,82 @@ class ApplicationService:
 
         filename = resume.file_name or f"resume_{application.id}.pdf"
         return file_bytes, filename
+
+    # ── update status ─────────────────────────────────────────────────────────
+
+    async def update_application_status(
+        self,
+        application_id: str,
+        new_status: ApplicationStatus,
+        recruiter: Recruiter,
+    ) -> ApplicationResponse:
+        """
+        Transition an application to a new recruitment pipeline status.
+
+        Validations:
+          - Application must exist.
+          - The associated Job must exist and not be DELETED.
+          - Recruiter must own the job.
+          - Status transition must be permitted according to ALLOWED_STATUS_TRANSITIONS.
+
+        Allowed transitions:
+          - SUBMITTED -> UNDER_REVIEW, REJECTED
+          - UNDER_REVIEW -> SHORTLISTED, REJECTED
+          - SHORTLISTED -> INTERVIEW, REJECTED
+          - INTERVIEW -> REJECTED
+
+        Raises:
+            404 if application or job is not found or not owned by the recruiter.
+            409 if the status transition is invalid.
+        """
+        try:
+            app_uuid = UUID(application_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Application not found.",
+            )
+
+        # 1. Fetch application with related job
+        application = await self.app_repo.get_by_id_with_relations(app_uuid)
+        if application is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Application not found.",
+            )
+
+        # 2. Verify job exists and recruiter owns it
+        job = application.job_posting
+        if (
+            job is None
+            or job.status == JobStatus.DELETED
+            or job.recruiter_id != recruiter.id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Application not found.",
+            )
+
+        # 3. No-op if status is identical
+        current_status = ApplicationStatus(application.status)
+        if current_status == new_status:
+            return self._to_response(application)
+
+        # 4. Enforce state machine rules
+        allowed_next = ALLOWED_STATUS_TRANSITIONS.get(current_status, set())
+        if new_status not in allowed_next:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"Cannot transition application status from '{current_status.value}' "
+                    f"to '{new_status.value}'."
+                ),
+            )
+
+        # 5. Persist status update
+        application.status = new_status.value
+        updated = await self.app_repo.update(application)
+        return self._to_response(updated)
+
 
 

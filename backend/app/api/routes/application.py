@@ -6,7 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies.auth import get_current_recruiter
 from app.dependencies.database import get_db
 from app.models.recruiter import Recruiter
-from app.schemas.application import ApplicationResponse, ApplicationSubmitRequest
+from app.schemas.application import (
+    ApplicationResponse,
+    ApplicationStatusUpdateRequest,
+    ApplicationSubmitRequest,
+)
 from app.services.application_service import ApplicationService
 
 router = APIRouter(prefix="/applications", tags=["Applications"])
@@ -65,4 +69,25 @@ async def download_application_resume(
             "Content-Disposition": f'attachment; filename="{filename}"',
         },
     )
+
+
+# ── PATCH /applications/{application_id}/status ───────────────────────────────
+@router.patch(
+    "/{application_id}/status",
+    response_model=ApplicationResponse,
+    status_code=200,
+    summary="Update application recruitment status",
+)
+async def update_application_status(
+    application_id: str,
+    data: ApplicationStatusUpdateRequest,
+    current_recruiter: Annotated[Recruiter, Depends(get_current_recruiter)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> ApplicationResponse:
+    return await ApplicationService(session).update_application_status(
+        application_id=application_id,
+        new_status=data.status,
+        recruiter=current_recruiter,
+    )
+
 

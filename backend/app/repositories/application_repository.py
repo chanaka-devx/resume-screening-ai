@@ -22,6 +22,14 @@ class ApplicationRepository:
         await self.session.refresh(application)
         return application
 
+    async def update(self, application: Application) -> Application:
+        """Persist changes to an existing Application row and return the refreshed instance."""
+        await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(application)
+        return application
+
+
     async def get_by_id(self, application_id: UUID) -> Application | None:
         """Return the application with the given UUID, or None."""
         result = await self.session.execute(

@@ -1,0 +1,48 @@
+meta {
+  name: Update Application Status
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{base_url}}/api/v1/applications/{{application_id}}/status
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "status": "under_review"
+  }
+}
+
+docs {
+  ## Update Application Status
+
+  Updates the recruitment stage/status of an application.
+
+  ### Requirements & Features
+  - Requires recruiter authentication (Bearer token).
+  - Verifies the recruiter owns the job associated with this application.
+  - Enforces valid state machine transitions:
+    - `submitted` -> `under_review`, `rejected`
+    - `under_review` -> `shortlisted`, `rejected`
+    - `shortlisted` -> `interview`, `rejected`
+    - `interview` -> `rejected`
+  - Returns `409 Conflict` if the transition is not allowed.
+  - Returns `404 Not Found` if the application is not found or not owned by recruiter.
+
+  ### Path Parameters
+  | Param          | Type | Description                 |
+  |----------------|------|-----------------------------|
+  | application_id | UUID | UUID of the job application |
+
+  ### Body JSON
+  | Field  | Type   | Allowed Values                                                      |
+  |--------|--------|---------------------------------------------------------------------|
+  | status | string | `submitted`, `under_review`, `shortlisted`, `interview`, `rejected` |
+}
