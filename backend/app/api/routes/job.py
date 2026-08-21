@@ -5,18 +5,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.auth import get_current_recruiter
 from app.dependencies.database import get_db
+from app.enums.application_status import ApplicationStatus
 from app.enums.job_location import JobLocation
 from app.enums.job_status import JobStatus
 from app.models.recruiter import Recruiter
+from app.schemas.application import JobApplicationListResponse
 from app.schemas.job import (
     JobCreateRequest,
     JobListResponse,
     JobResponse,
     JobUpdateRequest,
 )
+from app.services.application_service import ApplicationService
 from app.services.job_service import JobService
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
+
 
 
 # ── POST /jobs ───────────────────────────────────────────────────────────────
@@ -182,3 +186,28 @@ async def delete_job(
     - Deleted jobs are no longer visible via the list or detail APIs.
     """
     return await JobService(session).delete_job(job_id, current_recruiter)
+
+
+# ── GET /jobs/{job_id}/applications ──────────────────────────────────────────
+@router.get(
+    "/{job_id}/applications",
+    response_model=JobApplicationListResponse,
+    status_code=200,
+    summary="Get applications for a job posting (RS-030)",
+)
+async def get_job_applications(
+    job_id: str,
+    current_recruiter: Annotated[Recruiter, Depends(get_current_recruiter)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+    page: int = Query(default=1, ge=1, description="Page number (1-based)"),
+    limit: int = Query(default=10, ge=1, le=100, description="Items per page (max 100)"),
+    status: ApplicationStatus | None = Query(default=None, description="Filter by application status"),
+) -> JobApplicationListResponse:
+
+    return await ApplicationService(session).get_job_applications(
+        job_id=job_id,
+        recruiter=current_recruiter,
+        page=page,
+        limit=limit,
+        status_filter=status,
+    )

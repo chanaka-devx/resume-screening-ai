@@ -1,0 +1,46 @@
+meta {
+  name: Get Job Applications
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{base_url}}/api/v1/jobs/{{job_id}}/applications?page=1&limit=10
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 1
+  limit: 10
+  ~status: submitted
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  ## RS-030 — Get Job Applications API
+
+  Returns a paginated list of applications for a specific job posting owned by the authenticated recruiter.
+
+  ### Requirements & Features
+  - Requires recruiter Bearer token authentication.
+  - Verifies the recruiter owns the job (returns **404** if not found or not owned).
+  - Supports pagination (`page`, `limit`).
+  - Supports status filtering (`submitted`, `under_review`, `shortlisted`, `interview`, `rejected`).
+  - Returns candidate info (`full_name`, `email`, `phone`, `linkedin_url`, `github_url`), resume details, status, and submission date (`created_at`).
+
+  ### Path Parameters
+  | Param  | Type   | Description            |
+  |--------|--------|------------------------|
+  | job_id | UUID   | UUID of the job posting |
+
+  ### Query Parameters
+  | Param  | Type    | Default | Description                                                        |
+  |--------|---------|---------|--------------------------------------------------------------------|
+  | page   | integer | 1       | 1-based page number                                                |
+  | limit  | integer | 10      | Items per page (max 100)                                           |
+  | status | string  | —       | Filter by status (`submitted`, `under_review`, `shortlisted`, etc.) |
+}

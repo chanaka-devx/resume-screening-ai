@@ -1,9 +1,12 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from app.enums.application_status import ApplicationStatus
 from app.models.application import Application
+from app.models.resume import Resume
 
 
 class ApplicationRepository:
@@ -40,3 +43,45 @@ class ApplicationRepository:
             )
         )
         return result.scalar_one_or_none()
+
+    async def get_applications_by_job(
+        self,
+        job_id: UUID,
+        skip: int = 0,
+        limit: int = 10,
+        status: ApplicationStatus | None = None,
+    ) -> tuple[list[Application], int]:
+        """
+        Return a paginated list of applications for a specific job posting,
+        with resume and applicant eagerly loaded.
+
+        Returns:
+            (items, total)
+        """
+        base_filter = [Application.job_id == job_id]
+
+        if status is not None:
+            status_value = status.value if hasattr(status, "value") else str(status)
+            base_filter.append(Application.status == status_value)
+
+        # Count query
+        count_result = await self.session.execute(
+            select(func.count()).select_from(Application).where(*base_filter)
+        )
+        total = count_result.scalar_one()
+
+        # Paginated rows
+        rows_result = await self.session.execute(
+            select(Application)
+            .options(
+                selectinload(Application.resume).selectinload(Resume.applicant)
+            )
+            .where(*base_filter)
+            .order_by(Application.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        items = list(rows_result.scalars().all())
+
+        return items, total
+
