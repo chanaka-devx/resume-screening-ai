@@ -29,6 +29,23 @@ class ApplicationRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_id_with_relations(
+        self, application_id: UUID
+    ) -> Application | None:
+        """
+        Return the application with job_posting and resume eagerly loaded.
+        """
+        result = await self.session.execute(
+            select(Application)
+            .options(
+                selectinload(Application.job_posting),
+                selectinload(Application.resume),
+            )
+            .where(Application.id == application_id)
+        )
+        return result.scalar_one_or_none()
+
+
     async def get_by_job_and_resume(
         self, job_id: UUID, resume_id: UUID
     ) -> Application | None:

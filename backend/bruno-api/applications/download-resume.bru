@@ -1,0 +1,32 @@
+meta {
+  name: Download Application Resume
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/api/v1/applications/{{application_id}}/resume
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  ## RS-031 — Download Resume API
+
+  Downloads the PDF resume file for a candidate's application.
+
+  ### Requirements & Features
+  - Requires recruiter authentication (Bearer token).
+  - Verifies the recruiter owns the job associated with this application.
+  - Returns `404` if application not found, job not owned, or file missing in storage.
+  - Returns `application/pdf` binary stream with `Content-Disposition: attachment`.
+
+  ### Path Parameters
+  | Param          | Type | Description                   |
+  |----------------|------|-------------------------------|
+  | application_id | UUID | UUID of the job application   |
+}

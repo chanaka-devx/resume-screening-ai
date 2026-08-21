@@ -1,9 +1,13 @@
 import math
 from uuid import UUID
 
+import boto3
+from botocore.config import Config
+from botocore.exceptions import ClientError
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.enums.application_status import ApplicationStatus
 from app.enums.job_status import JobStatus
 from app.models.application import Application
@@ -21,7 +25,20 @@ from app.schemas.application import (
 )
 
 
+def _get_r2_client():
+    """Return a boto3 S3 client configured for Cloudflare R2."""
+    return boto3.client(
+        "s3",
+        endpoint_url=settings.R2_ENDPOINT,
+        aws_access_key_id=settings.R2_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.R2_SECRET_ACCESS_KEY,
+        config=Config(signature_version="s3v4"),
+        region_name="auto",
+    )
+
+
 class ApplicationService:
+
     """Business logic for job application operations."""
 
     def __init__(self, session: AsyncSession) -> None:
@@ -199,4 +216,96 @@ class ApplicationService:
             limit=limit,
             total_pages=total_pages,
         )
+
+    # ── download resume ───────────────────────────────────────────────────────
+
+    async def download_resume(
+        self,
+        application_id: str,
+        recruiter: Recruiter,
+    ) -> tuple[bytes, str]:
+        """
+        Download the resume PDF attached to an application.
+
+        Validations:
+          - Application must exist.
+          - The associated Job must exist and not be DELETED.
+          - Recruiter must own the job.
+          - Resume must exist and not be soft-deleted.
+          - File must exist in Cloudflare R2.
+
+        Raises:
+            404 if application, job, or resume is not found / not owned / missing file.
+            502 if storage download fails.
+        """
+        try:
+            app_uuid = UUID(application_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Application not found.",
+            )
+
+        # 1. Fetch application with related job and resume
+        application = await self.app_repo.get_by_id_with_relations(app_uuid)
+        if application is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Application not found.",
+            )
+
+        # 2. Verify job exists and recruiter owns it
+        job = application.job_posting
+        if (
+            job is None
+            or job.status == JobStatus.DELETED
+            or job.recruiter_id != recruiter.id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Application not found.",
+            )
+
+        # 3. Verify resume exists and is not soft-deleted
+        resume = application.resume
+        if resume is None or resume.deleted_at is not None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Resume not found.",
+            )
+
+        # 4. Extract R2 object key
+        if "resumes/" in resume.file_path:
+            object_key = "resumes/" + resume.file_path.split("resumes/", 1)[1]
+        else:
+            object_key = resume.file_path
+
+        # 5. Fetch file bytes from R2
+        try:
+            r2 = _get_r2_client()
+            response = r2.get_object(
+                Bucket=settings.R2_BUCKET_NAME,
+                Key=object_key,
+            )
+            file_bytes: bytes = response["Body"].read()
+        except ClientError as exc:
+            error_code = exc.response.get("Error", {}).get("Code", "")
+            if error_code in ("NoSuchKey", "404", "NoSuchBucket"):
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Resume file not found in storage.",
+                )
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Failed to retrieve resume from storage: {exc}",
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Failed to retrieve resume from storage: {exc}",
+            )
+
+        filename = resume.file_name or f"resume_{application.id}.pdf"
+        return file_bytes, filename
+
 
