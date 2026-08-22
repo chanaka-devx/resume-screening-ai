@@ -43,9 +43,14 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
       }
 
       setSuccess("Login successful! Redirecting...");
+      const redirectUrl =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("redirect") || "/jobs"
+          : "/jobs";
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push(redirectUrl);
       }, 1000);
+
     } catch (err: any) {
       setError(err?.message || "An unexpected error occurred.");
     } finally {
